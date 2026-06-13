@@ -7,6 +7,10 @@ live, ticking experience throughout the tournament.
 
 > Hosts: 🇺🇸 USA · 🇨🇦 Canada · 🇲🇽 Mexico — 48 teams, 12 groups, 16 host cities, 104 matches.
 
+> **Run it:** backend via Docker (`docker compose up -d --build`) then build the
+> release APK (`scripts/build-apk.sh` / `scripts\build-apk.bat`). Full
+> step-by-step in **[DEPLOY.md](DEPLOY.md)**. Backend details: [server/README.md](server/README.md).
+
 ## ✨ Features
 
 - **Smart Home Hub** — live blockbuster countdown banner, tournament progress
