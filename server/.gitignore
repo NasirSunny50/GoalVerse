@@ -1,0 +1,7 @@
+.dart_tool/
+.packages
+pubspec.lock
+data/goalverse.db
+data/goalverse.db-journal
+data/goalverse.db-wal
+data/goalverse.db-shm
