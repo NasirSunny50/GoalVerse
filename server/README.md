@@ -13,7 +13,29 @@ dart run bin/server.dart
 ```
 
 It listens on **http://localhost:8787** (set `PORT` to change it). On start it
-loads `data/fixtures.json` and begins polling TheSportsDB for real results.
+loads `data/fixtures.json`.
+
+## Run with Docker (anywhere)
+
+From the **repo root** (needs Docker):
+
+```bash
+docker compose up -d --build       # builds + runs the backend, port 8787
+docker compose logs -f             # watch logs
+docker compose down                # stop
+```
+
+Or just the image:
+
+```bash
+docker build -t goalverse-backend ./server
+docker run -d -p 8787:8787 -v goalverse-data:/app/data goalverse-backend
+```
+
+The API is then at `http://<host>:8787`. Accounts, predictions and results
+persist in the `goalverse-data` volume. Override the admin via env vars
+(`GV_ADMIN_EMAIL`, `GV_ADMIN_PASSWORD`). Point the app at it by building with
+`--dart-define=API_BASE=http://<host>:8787`.
 
 ## Run the app against it
 

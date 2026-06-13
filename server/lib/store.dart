@@ -6,15 +6,22 @@ import 'package:sqlite3/sqlite3.dart';
 
 bool _libReady = false;
 
-/// Point the sqlite3 package at the bundled `sqlite3.dll` (sits next to the
-/// server). Works from both `server/` (server + tests) cwd.
+/// Loads the native sqlite3 library for the current platform: the bundled
+/// `sqlite3.dll` on Windows, and the system library on Linux/macOS (e.g. the
+/// `libsqlite3-0` package inside the Docker image).
 void _ensureLib() {
   if (_libReady) return;
   open.overrideForAll(() {
-    for (final c in ['sqlite3.dll', 'server/sqlite3.dll']) {
-      if (File(c).existsSync()) return DynamicLibrary.open(File(c).absolute.path);
+    if (Platform.isWindows) {
+      for (final c in ['sqlite3.dll', 'server/sqlite3.dll']) {
+        if (File(c).existsSync()) {
+          return DynamicLibrary.open(File(c).absolute.path);
+        }
+      }
+      return DynamicLibrary.open('sqlite3.dll');
     }
-    return DynamicLibrary.open('sqlite3.dll');
+    if (Platform.isMacOS) return DynamicLibrary.open('libsqlite3.dylib');
+    return DynamicLibrary.open('libsqlite3.so.0'); // Linux / Docker
   });
   _libReady = true;
 }

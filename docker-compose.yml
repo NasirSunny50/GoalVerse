@@ -1,0 +1,21 @@
+# GoalVerse backend — run anywhere with:  docker compose up -d --build
+# The API is then reachable at http://<host>:8787 (build the app with
+# --dart-define=API_BASE=http://<host>:8787 to point it here).
+services:
+  goalverse-backend:
+    build: ./server
+    container_name: goalverse-backend
+    ports:
+      - "8787:8787"
+    volumes:
+      - goalverse-data:/app/data # persists accounts, predictions & results
+    environment:
+      PORT: "8787"
+      # Override the hardcoded admin for a real deployment:
+      # GV_ADMIN_EMAIL: "admin@gmail.com"
+      # GV_ADMIN_PASSWORD: "change-this"
+      # GV_BOTS: "0"        # set to 1 to add demo rival bots
+    restart: unless-stopped
+
+volumes:
+  goalverse-data:

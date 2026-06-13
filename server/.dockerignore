@@ -1,0 +1,8 @@
+# Build cache & platform-specific / runtime files not needed in the Linux image
+.dart_tool/
+sqlite3.dll
+data/goalverse.db
+data/*.db
+data/tournament_result.json
+Dockerfile
+.dockerignore
