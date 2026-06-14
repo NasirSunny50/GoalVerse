@@ -50,3 +50,7 @@ app.*.map.json
 # Server runtime data — goalverse.db holds user accounts + password hashes; never commit
 server/data/*.db
 server/data/tournament_result.json
+
+# DB backups (contain user data) — keep OFF the repo, copy them off-machine
+backups/
+*.db

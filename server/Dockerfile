@@ -8,7 +8,7 @@ RUN dart compile exe bin/server.dart -o /app/bin/server
 # ---- runtime stage: tiny image with just the binary + sqlite ----
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libsqlite3-0 ca-certificates \
+    && apt-get install -y --no-install-recommends libsqlite3-0 sqlite3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/bin/server /app/bin/server

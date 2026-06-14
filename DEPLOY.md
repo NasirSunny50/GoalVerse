@@ -68,7 +68,50 @@ written to `build/app/outputs/flutter-apk/app-release.apk`.
 
 ---
 
-## 3) Day-to-day
+## 3) Backup & disaster recovery (IMPORTANT for production)
+
+All data (accounts, predictions, admin results) lives in the SQLite database
+inside the Docker volume `goalverse-data` (`/app/data/goalverse.db`). The
+container/image can be rebuilt freely — the volume survives. But you still need
+**backups** for: an accidental `docker compose down -v`, a corrupted volume, or
+a dead host.
+
+### Take a backup (safe while the backend is running)
+
+```bash
+scripts/db-backup.sh                 # Windows: scripts\db-backup.bat
+# -> backups/goalverse-YYYYMMDD-HHMMSS.db   (consistent online snapshot)
+```
+
+**Copy that file off the machine** (cloud storage / another disk). A backup that
+sits on the same dead host saves nobody. Automate it — e.g. a daily cron job /
+Windows Task Scheduler running `scripts/db-backup.sh`, then sync `backups/` to
+the cloud.
+
+### Restore after a disaster
+
+```bash
+docker compose up -d                                 # ensure the stack exists
+scripts/db-restore.sh backups/goalverse-<timestamp>.db   # Windows: scripts\db-restore.bat ...
+```
+
+This stops the backend, swaps in the backup, and restarts — accounts and all
+predictions are back exactly as of that snapshot.
+
+### What to do per scenario
+
+| Disaster | What to do |
+|---|---|
+| Container/image broke | `docker compose up -d --build` — volume data is intact, nothing lost |
+| Accidental `down -v` / wiped volume | `docker compose up -d` then `scripts/db-restore.sh <latest backup>` |
+| DB corruption | `docker exec goalverse-backend sqlite3 /app/data/goalverse.db "PRAGMA integrity_check;"` → if not `ok`, restore from the last good backup |
+| Host machine died | On a new host: `git clone`, `docker compose up -d --build`, then `scripts/db-restore.sh <off-host backup>` |
+| Need a clean slate | `docker compose down -v && docker compose up -d` (fresh empty DB) |
+
+> Tip: take a backup **before** each round of matches and before any admin
+> bulk-edit, so you always have a recent restore point.
+
+## 4) Day-to-day
 
 | Task | Command |
 |---|---|
