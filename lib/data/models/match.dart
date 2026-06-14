@@ -122,6 +122,20 @@ class FootballMatch {
   /// True once real data from the live source has been applied.
   bool get hasRemote => remoteStatus != null;
 
+  // ---- Admin-entered result overlay (authoritative for DISPLAY + standings) -
+  // The admin records real results in the backend; when present this OVERRIDES
+  // the live feed so the admin can fill matches the feed lacks AND correct a
+  // wrong feed score. Compete prediction scoring is graded server-side and is
+  // unaffected by these fields. Both scores are non-null when set (the server
+  // coerces a one-sided score to 0), so a recorded result always has a line.
+  int? adminHomeScore;
+  int? adminAwayScore;
+  bool adminHasResult = false;
+
+  /// True when the admin has recorded a real, displayable scoreline.
+  bool get hasAdminResult =>
+      adminHasResult && adminHomeScore != null && adminAwayScore != null;
+
   String get homeName => home?.name ?? homePlaceholder ?? 'TBD';
   String get awayName => away?.name ?? awayPlaceholder ?? 'TBD';
 
@@ -130,6 +144,8 @@ class FootballMatch {
   /// fabricates a live/finished state from the clock alone. ([now] is kept for
   /// call-site compatibility.)
   MatchStatus statusAt(DateTime now) {
+    // Admin-recorded result wins over the feed (fills gaps / corrects bad data).
+    if (hasAdminResult) return MatchStatus.finished;
     if (hasRemote) {
       if (remoteFinished) return MatchStatus.finished;
       if (remoteNotStarted) return MatchStatus.upcoming;

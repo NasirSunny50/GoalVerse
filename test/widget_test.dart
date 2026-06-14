@@ -104,4 +104,65 @@ void main() {
       expect(table[i].points >= table[i + 1].points, isTrue);
     }
   });
+
+  test('admin result overrides the feed and feeds the group table', () {
+    final at = DateTime(2026, 6, 14, 12);
+    final repo = FixturesRepository(now: at);
+    final m = repo.matches
+        .firstWhere((x) => x.group == 'A' && x.home != null && x.away != null);
+
+    // No admin result and no feed -> still upcoming, NOT counted (unchanged).
+    expect(MatchEngine.stateAt(m, at).status, MatchStatus.upcoming);
+
+    // Admin records 3-1 -> finished with the admin scoreline.
+    m.adminHasResult = true;
+    m.adminHomeScore = 3;
+    m.adminAwayScore = 1;
+    final st = MatchEngine.stateAt(m, at);
+    expect(st.status, MatchStatus.finished);
+    expect(st.homeScore, 3);
+    expect(st.awayScore, 1);
+    expect(m.statusAt(at), MatchStatus.finished);
+
+    // A WRONG feed score must NOT win over the admin's result.
+    m.remoteStatus = 'FT';
+    m.remoteFinished = true;
+    m.remoteHomeScore = 0;
+    m.remoteAwayScore = 0;
+    final st2 = MatchEngine.stateAt(m, at);
+    expect(st2.homeScore, 3, reason: 'admin overrides the feed');
+    expect(st2.awayScore, 1);
+
+    // The group table now reflects the admin result (a 3-1 home win = +3).
+    final homeRow = repo
+        .standingsForGroup('A', at: at)
+        .firstWhere((r) => r.team.id == m.home!.id);
+    expect(homeRow.points, greaterThanOrEqualTo(3));
+    expect(homeRow.goalsFor, greaterThanOrEqualTo(3));
+  });
+
+  test('clearing the admin result reverts to feed/upcoming (no leftover impact)',
+      () {
+    final at = DateTime(2026, 6, 14, 12);
+    final repo = FixturesRepository(now: at);
+    final m = repo.matches.firstWhere((x) => x.group == 'B' && x.home != null);
+
+    // Feed says live 1-0.
+    m.remoteStatus = '2H';
+    m.remoteHomeScore = 1;
+    m.remoteAwayScore = 0;
+    expect(MatchEngine.stateAt(m, at).status, MatchStatus.live);
+
+    // Admin records a final -> overrides to finished.
+    m.adminHasResult = true;
+    m.adminHomeScore = 2;
+    m.adminAwayScore = 2;
+    expect(MatchEngine.stateAt(m, at).status, MatchStatus.finished);
+
+    // Clearing the admin result falls straight back to the live feed.
+    m.adminHasResult = false;
+    m.adminHomeScore = null;
+    m.adminAwayScore = null;
+    expect(MatchEngine.stateAt(m, at).status, MatchStatus.live);
+  });
 }

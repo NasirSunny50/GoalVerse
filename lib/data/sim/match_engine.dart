@@ -254,8 +254,28 @@ class MatchEngine {
   /// available; otherwise the match is shown as a scheduled fixture (no score,
   /// no clock). The app never displays a simulated/deterministic result.
   static LiveState stateAt(FootballMatch m, DateTime now) {
+    // Admin-recorded result is authoritative — it overrides the live feed so
+    // the admin can fill matches the feed lacks and correct wrong feed scores.
+    if (m.hasAdminResult) return _adminState(m);
     if (m.hasRemote) return _remoteState(m, now);
     return _scheduledState();
+  }
+
+  /// Finished snapshot built from the admin's recorded scoreline.
+  static LiveState _adminState(FootballMatch m) {
+    final hg = m.adminHomeScore ?? 0;
+    final ag = m.adminAwayScore ?? 0;
+    return LiveState(
+      status: MatchStatus.finished,
+      homeScore: hg,
+      awayScore: ag,
+      elapsed: const Duration(minutes: 90),
+      minute: 90,
+      second: 0,
+      phase: MatchPhase.fullTime,
+      addedTime: 0,
+      events: _synthEvents(m, hg, ag, 90),
+    );
   }
 
   /// Neutral "not started" snapshot — shown whenever there is no real data, so

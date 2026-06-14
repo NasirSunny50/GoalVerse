@@ -54,3 +54,10 @@ server/data/tournament_result.json
 # DB backups (contain user data) — keep OFF the repo, copy them off-machine
 backups/
 *.db
+
+# Feed reconciliation tool output (regenerable; cache can be large)
+server/data/.feed_cache/
+server/data/feed_reconciliation.txt
+
+# Local on-device test artifacts (screenshots, session tokens)
+.appcheck/

@@ -88,8 +88,35 @@ class FixturesProvider extends ChangeNotifier {
         final result = f['result'];
         if (result is Map) {
           _results[id] = result.cast<String, dynamic>();
+          // Overlay the admin's scoreline so display + standings reflect it
+          // (it overrides the live feed). Both scores are present once a real
+          // result is recorded (server coerces a one-sided score to 0).
+          final hs = result['homeScore'];
+          final as = result['awayScore'];
+          if (hs is int && as is int) {
+            if (!m.adminHasResult ||
+                m.adminHomeScore != hs ||
+                m.adminAwayScore != as) {
+              changed = true;
+            }
+            m.adminHasResult = true;
+            m.adminHomeScore = hs;
+            m.adminAwayScore = as;
+          } else if (m.adminHasResult) {
+            // Teams assigned but the score was cleared.
+            m.adminHasResult = false;
+            m.adminHomeScore = null;
+            m.adminAwayScore = null;
+            changed = true;
+          }
         } else {
           _results.remove(id);
+          if (m.adminHasResult) {
+            m.adminHasResult = false;
+            m.adminHomeScore = null;
+            m.adminAwayScore = null;
+            changed = true;
+          }
         }
         // Knockout slots get their teams from the admin assignment.
         if (m.stage != MatchStage.groupStage) {
@@ -250,8 +277,14 @@ class FixturesProvider extends ChangeNotifier {
       .toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 
+  /// Matches that genuinely haven't kicked off yet — the single source of
+  /// truth for "still open to predict". TIME-BASED on the absolute kickoff so
+  /// it matches the predict-screen / server lock (`!now.isBefore(kickoff)`) and
+  /// the See-all list exactly. (Must NOT use `statusAt`, which is real-data-only
+  /// and stays `upcoming` forever for matches with no live feed — that made
+  /// kicked-off, already-locked matches keep showing a "Predict" button.)
   List<FootballMatch> get upcomingMatches => matches
-      .where((m) => m.statusAt(_now) == MatchStatus.upcoming)
+      .where((m) => _now.isBefore(m.kickoff))
       .toList()
     ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
 
