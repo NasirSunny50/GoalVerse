@@ -416,6 +416,48 @@ void main() {
     expect(after['body']['points'], greaterThanOrEqualTo(25));
   });
 
+  test('knockout match is predictable THROUGH THE API once teams assigned',
+      () async {
+    // Regression: knockout fixtures have no teams in the schedule, so the
+    // predict endpoint must accept them once the admin has assigned teams via
+    // the result row — otherwise the whole knockout stage (and the penalties
+    // market) is unreachable for real users.
+    final api = makeApi(now: DateTime.utc(2026, 6, 1));
+    final ko = fixtures.all.firstWhere((f) => f.stage != 'groupStage');
+    final token = await registerAndLogin(api, 'koapi@goalverse.app');
+
+    // Before teams are assigned -> 404.
+    final pre = await call(api, 'PUT', '/predictions/match/${ko.id}',
+        body: {'winner': 'home', 'penalties': true}, token: token);
+    expect(pre['status'], 404, reason: 'no teams assigned yet');
+
+    // Admin assigns teams (no result yet).
+    final login = await call(api, 'POST', '/auth/login',
+        body: {'email': 'admin@gmail.com', 'password': 'Admin@123'});
+    final adminToken = login['body']['token'] as String;
+    await call(api, 'PUT', '/admin/result/${ko.id}',
+        body: {'homeTeamId': 'arg', 'awayTeamId': 'bra'}, token: adminToken);
+
+    // Now the user CAN predict it through the API, penalties market included.
+    final post = await call(api, 'PUT', '/predictions/match/${ko.id}',
+        body: {'winner': 'home', 'homeScore': 1, 'awayScore': 1, 'penalties': true},
+        token: token);
+    expect(post['status'], 200, reason: 'predictable once teams assigned');
+
+    // Admin records the knockout result -> penalties market scores end-to-end.
+    await call(api, 'PUT', '/admin/result/${ko.id}', body: {
+      'homeTeamId': 'arg',
+      'awayTeamId': 'bra',
+      'winner': 'home',
+      'homeScore': 1,
+      'awayScore': 1,
+      'penalties': true,
+    }, token: adminToken);
+    final s = await call(api, 'GET', '/stats', token: token);
+    // winner(10) + exact 1-1(25) + penalties(10) = 45.
+    expect(s['body']['points'], 45, reason: 'winner+exact+penalties via API');
+  });
+
   test('gradeTournament: per-market, only when decided', () {
     const res = TournamentResult(
         decided: true,

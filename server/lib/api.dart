@@ -208,8 +208,17 @@ class GoalVerseApi {
       return jsonError('Admin accounts cannot make predictions', status: 403);
     }
     final f = fixtures[id];
-    if (f == null || !f.hasTeams) {
-      return jsonError('Unknown match', status: 404);
+    if (f == null) return jsonError('Unknown match', status: 404);
+    // Knockout slots start without teams in the schedule — the admin assigns
+    // them via the result row. Teams are "known" if the static fixture has
+    // them OR the admin has assigned them (mirrors the /fixtures overlay), so
+    // knockout matches become predictable (incl. the penalties market) as soon
+    // as the bracket is filled.
+    final r = store.matchResult(id);
+    final teamsKnown = f.hasTeams ||
+        (r != null && r['homeTeamId'] != null && r['awayTeamId'] != null);
+    if (!teamsKnown) {
+      return jsonError('Teams not assigned yet', status: 404);
     }
     if (fixtures.isLocked(id, _now)) {
       return jsonError('Predictions are locked — the match has started',
