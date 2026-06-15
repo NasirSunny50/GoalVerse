@@ -9,6 +9,7 @@ import 'package:goalverse_server/fixtures.dart';
 import 'package:goalverse_server/scoring.dart';
 import 'package:goalverse_server/store.dart';
 import 'package:goalverse_server/tournament_result.dart';
+import 'package:goalverse_server/util.dart';
 
 late Fixtures fixtures;
 
@@ -376,6 +377,70 @@ void main() {
     final pred = await call(api, 'PUT', '/predictions/match/m1',
         body: {'winner': 'home'}, token: adminToken);
     expect(pred['status'], 403);
+  });
+
+  test('admin is a permanent HASHED db row, hidden from players + leaderboard',
+      () async {
+    final api = makeApi(now: DateTime.utc(2026, 8, 1));
+
+    // Seeded as a real users-table row with a salted hash (never plaintext).
+    final a = api.store.user('admin@gmail.com');
+    expect(a, isNotNull);
+    expect(a!['salt'], isNotNull);
+    expect(a['pwHash'], isNotNull);
+    expect(a['pwHash'], isNot('Admin@123'));
+    expect(hashPassword('Admin@123', a['salt'] as String), a['pwHash'],
+        reason: 'stored hash verifies the seeded password');
+
+    // Hidden from the players list + count (so it never pollutes scoring).
+    expect(api.store.allUsers().any((u) => u['email'] == 'admin@gmail.com'),
+        isFalse);
+    expect(api.store.userCount, 0);
+
+    // Login verifies against the stored hash; wrong password rejected.
+    final ok = await call(api, 'POST', '/auth/login',
+        body: {'email': 'admin@gmail.com', 'password': 'Admin@123'});
+    expect(ok['status'], 200);
+    expect(ok['body']['isAdmin'], true);
+    final bad = await call(api, 'POST', '/auth/login',
+        body: {'email': 'admin@gmail.com', 'password': 'wrong'});
+    expect(bad['status'], 401);
+
+    // A real player who scores appears on the leaderboard; the admin never does.
+    final t = await registerAndLogin(api, 'lbplayer@goalverse.app');
+    api.store.saveMatchResult(
+        'm1', {'winner': 'home', 'homeScore': 2, 'awayScore': 1});
+    await _seedPrediction(
+        api, t, 'm1', {'winner': 'home', 'homeScore': 2, 'awayScore': 1});
+    final lb =
+        await call(api, 'GET', '/leaderboard?period=allTime', token: t);
+    final entries = lb['body']['entries'] as List;
+    expect(entries.any((e) => e['name'] == 'Admin'), isFalse,
+        reason: 'admin must never show on the leaderboard');
+    expect(entries.any((e) => e['isMe'] == true), isTrue);
+  });
+
+  test('admin cannot be lost: re-seeded + idempotent across restarts', () {
+    final path = '${Directory.systemTemp.path}/'
+        'gv_admin_${DateTime.now().microsecondsSinceEpoch}.json';
+
+    // First "boot" seeds the admin; a second ensure is a no-op (no duplicate).
+    final s1 = Store(path);
+    s1.ensureAdmin('admin@gmail.com', 'Admin@123');
+    s1.ensureAdmin('admin@gmail.com', 'Admin@123');
+    final u1 = s1.user('admin@gmail.com');
+    expect(u1, isNotNull);
+    expect(hashPassword('Admin@123', u1!['salt'] as String), u1['pwHash']);
+    expect(s1.userCount, 0); // hidden from the player count
+    s1.close();
+
+    // "Restart": reopening the same DB still has the admin, re-seed is safe.
+    final s2 = Store(path);
+    expect(s2.user('admin@gmail.com'), isNotNull,
+        reason: 'admin persisted across restart');
+    s2.ensureAdmin('admin@gmail.com', 'Admin@123');
+    expect(s2.user('admin@gmail.com'), isNotNull);
+    s2.close();
   });
 
   test('knockout: admin assigns teams + result, overlay + scoring work',

@@ -16,7 +16,12 @@ class GoalVerseApi {
       TournamentResult Function()? tournamentResult})
       : scoring =
             Scoring(fixtures, store, tournamentResult: tournamentResult),
-        _clock = clock ?? DateTime.now;
+        _clock = clock ?? DateTime.now {
+    // The admin is a permanent, hashed DB row — seeded on every start so it
+    // survives a wipe and can never be deleted. The email stays reserved and
+    // the row is hidden from the players list / leaderboard.
+    store.ensureAdmin(adminEmail, adminPassword);
+  }
 
   final Store store;
   final Fixtures fixtures;
@@ -135,9 +140,12 @@ class GoalVerseApi {
     final b = await readJsonBody(req);
     final email = '${b['email'] ?? ''}'.trim().toLowerCase();
     final pw = '${b['password'] ?? ''}';
-    // Admin signs in here with the hardcoded credentials → admin token + flag.
+    // Admin signs in here; the password is verified against the stored salted
+    // hash (seeded by ensureAdmin, kept in sync with GV_ADMIN_PASSWORD).
     if (email == adminEmail) {
-      if (pw != adminPassword) {
+      final a = store.user(adminEmail);
+      if (a == null ||
+          hashPassword(pw, a['salt'] as String) != a['pwHash']) {
         return jsonError('Incorrect password', status: 401);
       }
       final token = store.issueToken(genToken(), adminEmail);

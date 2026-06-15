@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'util.dart';
+
 bool _libReady = false;
 
 /// Loads the native sqlite3 library for the current platform: the bundled
@@ -169,8 +171,38 @@ class Store {
 
   // ---- users --------------------------------------------------------------
 
-  int get userCount =>
-      _db.select('SELECT COUNT(*) AS c FROM users').first['c'] as int;
+  /// The reserved admin email — its row exists for auth/persistence but is
+  /// hidden from the players list, the count and the leaderboard.
+  String _adminEmail = '';
+
+  /// Idempotently seeds the admin account as a real, salted-hash user row, so
+  /// it lives in the DB (never stored in plaintext) and can NEVER be lost:
+  /// run on every server start, it re-creates the row if it was deleted or the
+  /// DB was wiped. The password mirrors [password] (the `GV_ADMIN_PASSWORD`
+  /// env / default), so the env override stays authoritative.
+  void ensureAdmin(String email, String password) {
+    _adminEmail = email.toLowerCase();
+    final existing = user(_adminEmail);
+    final salt = (existing?['salt'] as String?) ?? genSalt();
+    final hash = hashPassword(password, salt);
+    if (existing == null || existing['pwHash'] != hash) {
+      saveUser({
+        'email': _adminEmail,
+        'name': 'Admin',
+        'eid': 'ADMIN',
+        'salt': salt,
+        'pwHash': hash,
+        'created': existing?['created'] ??
+            DateTime.now().toUtc().toIso8601String(),
+      });
+    }
+  }
+
+  /// Count of REAL players (the admin row is excluded).
+  int get userCount => _db.select(
+        'SELECT COUNT(*) AS c FROM users WHERE email != ?',
+        [_adminEmail],
+      ).first['c'] as int;
 
   bool userExists(String email) => _db
       .select('SELECT 1 FROM users WHERE email = ?', [email.toLowerCase()])
@@ -206,8 +238,12 @@ class Store {
     );
   }
 
-  List<Map<String, dynamic>> allUsers() =>
-      _db.select('SELECT * FROM users').map(_userRow).toList();
+  /// All REAL players (the admin row is excluded so it never appears on the
+  /// leaderboard or in scoring).
+  List<Map<String, dynamic>> allUsers() => _db
+      .select('SELECT * FROM users WHERE email != ?', [_adminEmail])
+      .map(_userRow)
+      .toList();
 
   // ---- sessions -----------------------------------------------------------
 

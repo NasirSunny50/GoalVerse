@@ -1,8 +1,10 @@
-// Wipes ALL accounts, sessions and predictions (keeps the table structure).
+// Wipes ALL accounts, sessions and predictions (keeps the table structure),
+// then RE-SEEDS the permanent admin row so it can never be lost.
 // Run from the server folder:  dart run bin/reset_db.dart
 import 'dart:ffi';
 import 'dart:io';
 
+import 'package:goalverse_server/util.dart';
 import 'package:sqlite3/open.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -30,6 +32,24 @@ void main() {
   ]) {
     db.execute('DELETE FROM $t');
   }
+  // Re-seed the permanent admin (hashed) so it survives the wipe.
+  final email =
+      (Platform.environment['GV_ADMIN_EMAIL'] ?? 'admin@gmail.com').toLowerCase();
+  final pw = Platform.environment['GV_ADMIN_PASSWORD'] ?? 'Admin@123';
+  final salt = genSalt();
+  db.execute(
+    'INSERT OR REPLACE INTO users (email, name, employee_id, pw_hash, salt, created_at) '
+    'VALUES (?, ?, ?, ?, ?, ?)',
+    [
+      email,
+      'Admin',
+      'ADMIN',
+      hashPassword(pw, salt),
+      salt,
+      DateTime.now().toUtc().toIso8601String(),
+    ],
+  );
   db.dispose();
-  stdout.writeln('Reset complete — all accounts & predictions cleared.');
+  stdout.writeln('Reset complete — all accounts & predictions cleared; '
+      'admin re-seeded.');
 }
