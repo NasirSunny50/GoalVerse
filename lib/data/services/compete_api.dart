@@ -27,6 +27,9 @@ class CompeteApi {
 
   Map<String, String> _headers(String? token) => {
         'content-type': 'application/json',
+        // Skip ngrok's free-tier browser interstitial so API responses come
+        // back as JSON (harmless when the backend is reached any other way).
+        'ngrok-skip-browser-warning': 'true',
         if (token != null) 'authorization': 'Bearer $token',
       };
 

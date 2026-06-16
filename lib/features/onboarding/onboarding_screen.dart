@@ -60,7 +60,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
+              padding: EdgeInsets.fromLTRB(
+                  16, 12, 16, 120 + MediaQuery.viewPaddingOf(context).bottom),
               gridDelegate:
                   const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 180,
@@ -89,7 +90,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Positioned(
             left: 0,
             right: 0,
-            bottom: 24,
+            // Lift above the device's system navigation bar — GradientScaffold
+            // uses SafeArea(bottom: false), so add the bottom inset ourselves.
+            bottom: 24 + MediaQuery.viewPaddingOf(context).bottom,
             child: _continueButton(context),
           ),
         ],

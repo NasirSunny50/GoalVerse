@@ -7,7 +7,8 @@ import 'package:shelf/shelf.dart';
 const _corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization',
+  'Access-Control-Allow-Headers':
+      'Origin, Content-Type, Authorization, ngrok-skip-browser-warning',
 };
 
 Response jsonResponse(Object? data, {int status = 200}) => Response(

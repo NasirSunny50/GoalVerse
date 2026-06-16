@@ -61,3 +61,7 @@ server/data/feed_reconciliation.txt
 
 # Local on-device test artifacts (screenshots, session tokens)
 .appcheck/
+onboarding_check.png
+
+# Tunnel process logs (cloudflared/ngrok stderr) — local runtime only
+*.log.err
