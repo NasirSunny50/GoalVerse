@@ -11,9 +11,9 @@ services:
       - goalverse-data:/app/data # persists accounts, predictions & results
     environment:
       PORT: "8787"
-      # Override the hardcoded admin for a real deployment:
-      # GV_ADMIN_EMAIL: "admin@gmail.com"
-      # GV_ADMIN_PASSWORD: "change-this"
+      # Admin account — applied on every start by ensureAdmin (kept in sync).
+      GV_ADMIN_EMAIL: "admin@gmail.com"
+      GV_ADMIN_PASSWORD: "Admin@123"
       # GV_BOTS: "0"        # set to 1 to add demo rival bots
     restart: unless-stopped
 
