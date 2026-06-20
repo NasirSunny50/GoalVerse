@@ -65,3 +65,6 @@ onboarding_check.png
 
 # Tunnel process logs (cloudflared/ngrok stderr) — local runtime only
 *.log.err
+
+# ngrok tunnel config (contains authtoken) — never commit
+ngrok-tunnel.yml
