@@ -9,9 +9,10 @@ try { & $ng service uninstall } catch {}
 cmd /c "sc delete ngrok" 2>$null
 
 # 2) Register the watchdog task: at logon + every 2 minutes, as the user.
-$wd = "D:\Projects\Personal\GoalVerse\GoalVerse\scripts\ngrok-watchdog.ps1"
-$action = New-ScheduledTaskAction -Execute "powershell.exe" `
-  -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$wd`""
+# Launch through a VBS wrapper (wscript, window style 0) so the task never
+# flashes a console window — powershell.exe -WindowStyle Hidden still flashes.
+$vbs = "D:\Projects\Personal\GoalVerse\GoalVerse\scripts\run-watchdog-hidden.vbs"
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$vbs`""
 $tLogon = New-ScheduledTaskTrigger -AtLogOn
 $tRepeat = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) `
   -RepetitionInterval (New-TimeSpan -Minutes 2) -RepetitionDuration (New-TimeSpan -Days 3650)
