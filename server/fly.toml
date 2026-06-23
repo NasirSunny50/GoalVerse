@@ -1,0 +1,33 @@
+# GoalVerse backend on Fly.io
+#   fly launch --no-deploy   (first time, to create the app + this volume)
+#   fly volumes create goalverse_data --region sin --size 1
+#   fly secrets set GV_ADMIN_EMAIL=... GV_ADMIN_PASSWORD=...
+#   fly deploy
+# Public API: https://goalverse-api-bd.fly.dev
+app = "goalverse-api-bd"
+primary_region = "sin"  # Singapore — closest Fly region to Bangladesh
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # Cost-saving: idle the single machine and cold-start on request. The volume
+  # (and the SQLite DB on it) persists across stops, so no data is lost.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# Persistent storage for goalverse.db (+ seeded fixtures.json). Survives
+# deploys, restarts and machine stops — this is the disaster-recovery anchor.
+[[mounts]]
+  source = "goalverse_data"
+  destination = "/app/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

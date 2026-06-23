@@ -1,0 +1,37 @@
+# Render Blueprint — deploys the GoalVerse backend (Dart + SQLite, Dockerized)
+# on the free tier. Persistence is handled by Litestream streaming goalverse.db
+# to an S3 bucket (Render free has no persistent disk), so data survives the
+# ephemeral filesystem and spin-downs.
+#
+# Deploy: Render dashboard -> New -> Blueprint -> pick this repo. Then fill the
+# secret env vars (marked sync:false) in the dashboard:
+#   GV_ADMIN_EMAIL, GV_ADMIN_PASSWORD
+#   LITESTREAM_ENDPOINT  (e.g. https://gateway.storjshare.io)
+#   LITESTREAM_BUCKET    (your bucket name)
+#   LITESTREAM_ACCESS_KEY_ID, LITESTREAM_SECRET_ACCESS_KEY  (S3 keys)
+services:
+  - type: web
+    name: goalverse-api-bd
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GV_ADMIN_EMAIL
+        sync: false
+      - key: GV_ADMIN_PASSWORD
+        sync: false
+      - key: LITESTREAM_ENDPOINT
+        sync: false
+      - key: LITESTREAM_BUCKET
+        sync: false
+      - key: LITESTREAM_REGION
+        value: us-east-1
+      - key: LITESTREAM_ACCESS_KEY_ID
+        sync: false
+      - key: LITESTREAM_SECRET_ACCESS_KEY
+        sync: false

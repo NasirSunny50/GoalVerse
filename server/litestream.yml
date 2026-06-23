@@ -1,0 +1,16 @@
+# Litestream — continuously replicates the SQLite DB to an S3-compatible bucket
+# so it survives Render's ephemeral disk (no persistent disk on the free tier).
+# All values come from env vars set in the Render dashboard. If LITESTREAM_BUCKET
+# is unset the entrypoint skips Litestream entirely and runs the plain server
+# (local dev / docker-compose with a real volume).
+dbs:
+  - path: /app/data/goalverse.db
+    replicas:
+      - type: s3
+        endpoint: ${LITESTREAM_ENDPOINT}     # e.g. https://gateway.storjshare.io
+        bucket: ${LITESTREAM_BUCKET}
+        path: goalverse                        # key prefix inside the bucket
+        region: ${LITESTREAM_REGION}           # any value works for Storj, e.g. us-east-1
+        force-path-style: true                 # required by Storj / most S3 gateways
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
