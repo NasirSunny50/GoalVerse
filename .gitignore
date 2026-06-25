@@ -47,6 +47,9 @@ app.*.map.json
 # Local agent config
 .claude/
 
+# Wrangler (Cloudflare Pages CLI) local cache — runtime only
+.wrangler/
+
 # Server runtime data — goalverse.db holds user accounts + password hashes; never commit
 server/data/*.db
 server/data/tournament_result.json
