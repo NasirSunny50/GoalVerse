@@ -32,7 +32,7 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
-          _header(context, compete.user ?? 'Player', stats),
+          _header(context, compete.user ?? 'Player', compete.email, stats),
           _statGrid(context, stats),
           _sectionTitle(context, 'Achievement Badges'),
           _badges(context, stats.badges),
@@ -46,7 +46,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _header(BuildContext context, String name, CompeteStats s) {
+  Widget _header(
+      BuildContext context, String name, String? email, CompeteStats s) {
     final progress =
         s.xpForLevel == 0 ? 0.0 : (s.xpIntoLevel / s.xpForLevel).clamp(0.0, 1.0);
     return Container(
@@ -83,6 +84,25 @@ class ProfileScreen extends StatelessWidget {
                         style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 13)),
+                    if (email != null && email.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.email_outlined,
+                              size: 13,
+                              color: Colors.white.withValues(alpha: 0.9)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(email,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

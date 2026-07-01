@@ -93,6 +93,7 @@ class CompeteProvider extends ChangeNotifier {
   String? _userName;
   String? _userEmail;
   String? get user => _userName;
+  String? get email => _userEmail;
   bool get loggedIn => _token != null;
 
   /// True when the signed-in account is the admin (server-validated). Admins
@@ -272,7 +273,10 @@ class CompeteProvider extends ChangeNotifier {
       _stats = CompeteStats.fromJson(
           (me['stats'] as Map).cast<String, dynamic>());
       final u = (me['user'] as Map?)?.cast<String, dynamic>();
-      if (u != null) _userName = u['name'] as String?;
+      if (u != null) {
+        _userName = u['name'] as String?;
+        _userEmail = u['email'] as String? ?? _userEmail;
+      }
 
       final preds = await _api.predictions(_token!);
       _parsePredictions(preds);
